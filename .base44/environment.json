@@ -1,0 +1,22 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "AZURE_DOCUMENT_INTELLIGENCE_KEY",
+      "description": "Azure Document Intelligence subscription key (from Config.docx / Azure portal)",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "AZURE_OPENAI_API_KEY",
+      "description": "Azure OpenAI / Foundry API key (from Config.docx / Azure portal)",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "AZURE_SEARCH_QUERY_KEY",
+      "description": "Azure AI Search query key for RAG retrieval (from Config.docx / Azure portal)",
+      "requiredAtBoot": false
+    }
+  ]
+}
