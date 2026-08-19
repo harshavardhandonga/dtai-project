@@ -15,8 +15,9 @@ export const azureConfig = {
   chatDeployment: process.env.AZURE_OPENAI_CHAT_DEPLOYMENT || "claimiq-chat",
   embeddingDeployment: process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || "claimiq-embedding",
   searchEndpoint: norm(process.env.AZURE_SEARCH_ENDPOINT),
-  // Query key is sufficient for read-only retrieval; admin key works too.
+  // Query key for read-only retrieval; admin key for index creation + uploads.
   searchKey: process.env.AZURE_SEARCH_QUERY_KEY || process.env.AZURE_SEARCH_ADMIN_KEY,
+  searchAdminKey: process.env.AZURE_SEARCH_ADMIN_KEY,
   searchIndex: process.env.AZURE_SEARCH_INDEX || "claimiq-knowledge",
 };
 

@@ -1,7 +1,8 @@
 import type { DemoClaim, RAGAnswer } from "@/lib/types";
 import { localSearch, retrieveByRuleId } from "./localSearch";
 import { isLiveMode } from "@/lib/azure/config";
-import { azureSearch } from "@/lib/azure/search";
+import { azureSearch, azureSearchByRuleId } from "@/lib/azure/search";
+import { generateGroundedAnswer } from "@/lib/azure/ragAnswer";
 import { getRule } from "@/lib/rules/ruleRegistry";
 
 const docTitles: Record<string, string> = {
@@ -23,30 +24,49 @@ function isRoutingQuestion(question: string): boolean {
 }
 
 export async function answerQuestion(question: string, claim?: DemoClaim): Promise<RAGAnswer> {
-  // Mode B: exact rule lookup (deterministic — uses the local rule registry)
+  // Mode B: exact rule lookup (PRD §74 — preferred when explaining a specific rule)
   const ruleId = extractRuleIdFromQuestion(question);
   if (ruleId) {
     const rule = getRule(ruleId);
-    const chunks = retrieveByRuleId(ruleId);
-    if (rule && chunks.length > 0) {
-      const bestChunk = chunks[0];
-      return {
-        answer: `${rule.description}. ${bestChunk.content.substring(0, 500)}...`,
-        calculation: undefined,
-        sources: chunks.slice(0, 3).map((c) => ({
-          document: docTitles[c.documentCode] || c.documentCode,
-          clause: c.ruleIds.includes(ruleId) ? rule.clauseNumber : undefined,
-          page: c.pageNumber,
-          ruleId,
-        })),
-        evidenceFound: true,
-      };
+    if (rule) {
+      let chunks;
+      if (isLiveMode()) {
+        try {
+          chunks = await azureSearchByRuleId(ruleId, {
+            documentType: rule.documentType === "POLICY" ? "motor_policy" : "claims_sop",
+            topK: 3,
+          });
+        } catch (err) {
+          console.error("[ClaimIQ] Azure Search by ruleId failed, falling back:", err);
+          chunks = retrieveByRuleId(ruleId).map((chunk) => ({ chunk, score: 1 }));
+        }
+      } else {
+        chunks = retrieveByRuleId(ruleId).map((chunk) => ({ chunk, score: 1 }));
+      }
+
+      if (chunks.length > 0) {
+        // Try grounded answer via Azure OpenAI
+        const grounded = await generateGroundedAnswer(question, chunks.map((c) => c.chunk));
+        if (grounded) return grounded;
+
+        // Fallback: deterministic answer from rule registry + chunk content
+        const bestChunk = chunks[0];
+        return {
+          answer: `${rule.description}. ${bestChunk.chunk.content.substring(0, 500)}...`,
+          calculation: undefined,
+          sources: chunks.slice(0, 3).map((c) => ({
+            document: docTitles[c.chunk.documentCode] || c.chunk.documentCode,
+            clause: c.chunk.clauseNumber || (c.chunk.ruleIds.includes(ruleId) ? rule.clauseNumber : undefined),
+            page: c.chunk.pageNumber,
+            ruleId,
+          })),
+          evidenceFound: true,
+        };
+      }
     }
   }
 
-  // Mode A: hybrid keyword + vector retrieval.
-  // Live mode queries Azure AI Search; on any error it falls back to the
-  // local keyword index so RAG always returns an answer.
+  // Mode A: hybrid keyword + vector retrieval (PRD §74)
   const routing = isRoutingQuestion(question);
   const documentType = routing ? "claims_sop" : "motor_policy";
   const policyCode = claim?.context.policySchedule.policyCode;
@@ -77,20 +97,23 @@ export async function answerQuestion(question: string, claim?: DemoClaim): Promi
     };
   }
 
-  // Build answer from top chunks
+  // Try grounded answer via Azure OpenAI (PRD §76)
+  const grounded = await generateGroundedAnswer(question, results.map((r) => r.chunk));
+  if (grounded) return grounded;
+
+  // Fallback: concatenate retrieved chunk content as the answer
   const topChunks = results.slice(0, 3);
   const answerText = topChunks
     .map((r) => r.chunk.content.substring(0, 600))
     .join("\n\n");
 
-  // Extract relevant rule IDs from chunks
   const relevantRuleIds = [...new Set(topChunks.flatMap((r) => r.chunk.ruleIds))].slice(0, 3);
 
   return {
     answer: answerText.substring(0, 1500),
     sources: topChunks.map((r) => ({
       document: docTitles[r.chunk.documentCode] || r.chunk.documentCode,
-      clause: undefined,
+      clause: r.chunk.clauseNumber,
       page: r.chunk.pageNumber,
       ruleId: r.chunk.ruleIds.find((rid) => relevantRuleIds.includes(rid)),
     })),
@@ -101,9 +124,8 @@ export async function answerQuestion(question: string, claim?: DemoClaim): Promi
 export async function answerWithCalculation(
   question: string,
   claim: DemoClaim,
-  settlement: { adjustments: { ruleId: string; description: string; amount: number; documentCode: string; clauseNumber: string }[] }
+  settlement: { adjustments: { ruleId: string; description: string; amount: number; documentCode: string; clauseNumber: string; category: string }[] }
 ): Promise<RAGAnswer> {
-  // Check if asking about a specific adjustment
   const lowerQ = question.toLowerCase();
 
   if (lowerQ.includes("depreciation")) {

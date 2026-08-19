@@ -2,9 +2,11 @@
 export interface KnowledgeChunk {
   id: string;
   documentCode: string;
+  documentVersion?: string;
   documentType: "motor_policy" | "claims_sop";
   policyCode: string | null;
   sectionTitle: string;
+  clauseNumber?: string;
   pageNumber: number;
   ruleIds: string[];
   content: string;
