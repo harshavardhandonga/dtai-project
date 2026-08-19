@@ -1,0 +1,59 @@
+{
+  "claimId": "CLM-BMW-003",
+  "policyNumber": "AD26ELITE00982",
+  "policyCode": "AD-ELITE-02",
+  "policySchedule": {
+    "policyStartDate": "2026-04-01",
+    "policyEndDate": "2027-03-31",
+    "idv": 1200000,
+    "compulsoryDeductible": 2000,
+    "voluntaryDeductible": 0,
+    "activeAddOns": [
+      "ZERO_DEPRECIATION",
+      "CONSUMABLES"
+    ],
+    "odClaimsThisPolicyYear": 1,
+    "originalInvoiceValue": 4600000,
+    "benefitUsage": {
+      "engineProtectUsed": 0,
+      "tyreProtectUsed": 0,
+      "keyReplacementUsed": 0,
+      "rsaEventsUsed": 0
+    }
+  },
+  "claim": {
+    "lossDate": "2026-08-22",
+    "accidentDescription": "Vehicle collided with a road divider at the front-right corner.",
+    "primaryImpactLocation": "front-right",
+    "injuryInvolved": false,
+    "thirdPartyInvolved": false,
+    "policeReportRequired": false
+  },
+  "vehicle": {
+    "registration": "MH01AB1234",
+    "make": "BMW",
+    "model": "320d",
+    "variant": "Luxury Line",
+    "modelYear": 2021,
+    "engineCC": 1995,
+    "vehicleAgeYears": 4.75,
+    "odometerKm": 58900
+  },
+  "garage": {
+    "name": "Prestige Motor Works",
+    "city": "Mumbai",
+    "networkStatus": "non_network"
+  },
+  "documentsAvailable": {
+    "workshopEstimate": true,
+    "accidentNarrative": true,
+    "vehicleRegistration": true,
+    "policyConfirmation": true,
+    "drivingLicence": true,
+    "damagePhotographs": true
+  },
+  "sourceDocument": {
+    "fileName": "BMW_Workshop_Estimate.png",
+    "documentType": "workshop_estimate"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "claimId": "CLM-CRETA-001",
+  "policyNumber": "AD26COMP01458",
+  "policyCode": "AD-COMP-01",
+  "policySchedule": {
+    "policyStartDate": "2026-04-01",
+    "policyEndDate": "2027-03-31",
+    "idv": 1200000,
+    "compulsoryDeductible": 1000,
+    "voluntaryDeductible": 0,
+    "activeAddOns": [],
+    "odClaimsThisPolicyYear": 0
+  },
+  "claim": {
+    "lossDate": "2026-08-20",
+    "accidentDescription": "Minor scrape against a parking pillar while reversing.",
+    "primaryImpactLocation": "left-front bumper corner",
+    "injuryInvolved": false,
+    "thirdPartyInvolved": false,
+    "policeReportRequired": false
+  },
+  "vehicle": {
+    "registration": "TS09AB4582",
+    "make": "Hyundai",
+    "model": "Creta",
+    "variant": "1.5 SX",
+    "modelYear": 2024,
+    "engineCC": 1497,
+    "vehicleAgeYears": 2.0,
+    "odometerKm": 18420
+  },
+  "garage": {
+    "name": "Prime Wheels Body & Paint",
+    "city": "Hyderabad",
+    "networkStatus": "network"
+  },
+  "documentsAvailable": {
+    "workshopEstimate": true,
+    "accidentNarrative": true,
+    "vehicleRegistration": true,
+    "policyConfirmation": true,
+    "drivingLicence": true,
+    "damagePhotographs": true
+  },
+  "sourceDocument": {
+    "fileName": "CRETA_Workshop_Estimate.png",
+    "documentType": "workshop_estimate"
+  }
+}

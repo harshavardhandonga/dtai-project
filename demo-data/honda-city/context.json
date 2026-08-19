@@ -1,0 +1,49 @@
+{
+  "claimId": "CLM-HCITY-002",
+  "policyNumber": "AD26COMP07713",
+  "policyCode": "AD-COMP-01",
+  "policySchedule": {
+    "policyStartDate": "2026-05-01",
+    "policyEndDate": "2027-04-30",
+    "idv": 780000,
+    "compulsoryDeductible": 1000,
+    "voluntaryDeductible": 0,
+    "activeAddOns": [],
+    "odClaimsThisPolicyYear": 0
+  },
+  "claim": {
+    "lossDate": "2026-08-21",
+    "accidentDescription": "Vehicle struck another vehicle at the front-right corner at moderate speed.",
+    "primaryImpactLocation": "front-right bumper / headlamp / fender",
+    "injuryInvolved": false,
+    "thirdPartyInvolved": true,
+    "policeReportRequired": false
+  },
+  "vehicle": {
+    "registration": "MH12QK7713",
+    "make": "Honda",
+    "model": "City",
+    "variant": "VX CVT",
+    "modelYear": 2022,
+    "engineCC": 1498,
+    "vehicleAgeYears": 4.0,
+    "odometerKm": 42650
+  },
+  "garage": {
+    "name": "CityDrive Auto Care",
+    "city": "Pune",
+    "networkStatus": "network"
+  },
+  "documentsAvailable": {
+    "workshopEstimate": true,
+    "accidentNarrative": true,
+    "vehicleRegistration": true,
+    "policyConfirmation": true,
+    "drivingLicence": true,
+    "damagePhotographs": true
+  },
+  "sourceDocument": {
+    "fileName": "HONDA_Workshop_Estimate.png",
+    "documentType": "workshop_estimate"
+  }
+}
