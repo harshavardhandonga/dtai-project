@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
   const settlement = claim ? calculateSettlement(claim) : undefined;
 
   const answer = settlement
-    ? answerWithCalculation(question, claim!, { adjustments: settlement.adjustments })
-    : answerQuestion(question, claim);
+    ? await answerWithCalculation(question, claim!, { adjustments: settlement.adjustments })
+    : await answerQuestion(question, claim);
 
   return NextResponse.json(answer);
 }

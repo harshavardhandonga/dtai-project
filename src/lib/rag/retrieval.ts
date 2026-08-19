@@ -1,5 +1,7 @@
 import type { DemoClaim, RAGAnswer } from "@/lib/types";
 import { localSearch, retrieveByRuleId } from "./localSearch";
+import { isLiveMode } from "@/lib/azure/config";
+import { azureSearch } from "@/lib/azure/search";
 import { getRule } from "@/lib/rules/ruleRegistry";
 
 const docTitles: Record<string, string> = {
@@ -20,8 +22,8 @@ function isRoutingQuestion(question: string): boolean {
   return routingKeywords.some((k) => question.toLowerCase().includes(k));
 }
 
-export function answerQuestion(question: string, claim?: DemoClaim): RAGAnswer {
-  // Mode B: exact rule lookup
+export async function answerQuestion(question: string, claim?: DemoClaim): Promise<RAGAnswer> {
+  // Mode B: exact rule lookup (deterministic — uses the local rule registry)
   const ruleId = extractRuleIdFromQuestion(question);
   if (ruleId) {
     const rule = getRule(ruleId);
@@ -42,16 +44,30 @@ export function answerQuestion(question: string, claim?: DemoClaim): RAGAnswer {
     }
   }
 
-  // Mode A: hybrid keyword + vector (local fallback)
+  // Mode A: hybrid keyword + vector retrieval.
+  // Live mode queries Azure AI Search; on any error it falls back to the
+  // local keyword index so RAG always returns an answer.
   const routing = isRoutingQuestion(question);
   const documentType = routing ? "claims_sop" : "motor_policy";
   const policyCode = claim?.context.policySchedule.policyCode;
 
-  const results = localSearch(question, {
+  const searchOptions = {
     documentType,
     policyCode: routing ? undefined : policyCode,
     topK: 5,
-  });
+  };
+
+  let results;
+  if (isLiveMode()) {
+    try {
+      results = await azureSearch(question, searchOptions);
+    } catch (err) {
+      console.error("[ClaimIQ] Azure AI Search failed, falling back to local search:", err);
+      results = localSearch(question, searchOptions);
+    }
+  } else {
+    results = localSearch(question, searchOptions);
+  }
 
   if (results.length === 0) {
     return {
@@ -82,11 +98,11 @@ export function answerQuestion(question: string, claim?: DemoClaim): RAGAnswer {
   };
 }
 
-export function answerWithCalculation(
+export async function answerWithCalculation(
   question: string,
   claim: DemoClaim,
   settlement: { adjustments: { ruleId: string; description: string; amount: number; documentCode: string; clauseNumber: string }[] }
-): RAGAnswer {
+): Promise<RAGAnswer> {
   // Check if asking about a specific adjustment
   const lowerQ = question.toLowerCase();
 
@@ -94,7 +110,7 @@ export function answerWithCalculation(
     const depAdjustments = settlement.adjustments.filter((a) => a.category === "depreciation");
     if (depAdjustments.length > 0) {
       const total = depAdjustments.reduce((s, a) => s + a.amount, 0);
-      const baseAnswer = answerQuestion(question, claim);
+      const baseAnswer = await answerQuestion(question, claim);
       return {
         ...baseAnswer,
         calculation: `Total depreciation deductions: ₹${total.toLocaleString("en-IN")}\n` +
@@ -106,7 +122,7 @@ export function answerWithCalculation(
   if (lowerQ.includes("deductible")) {
     const dedAdjustments = settlement.adjustments.filter((a) => a.category === "deductible");
     if (dedAdjustments.length > 0) {
-      const baseAnswer = answerQuestion(question, claim);
+      const baseAnswer = await answerQuestion(question, claim);
       return {
         ...baseAnswer,
         calculation: dedAdjustments.map((a) => `${a.description}`).join("\n"),
