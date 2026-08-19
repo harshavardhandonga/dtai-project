@@ -4,7 +4,7 @@ import { analyzeClaim } from "@/lib/analysis";
 import { isLiveMode } from "@/lib/azure/config";
 import { readDemoEstimate } from "@/lib/demo/demoData";
 import { extractDocument } from "@/lib/azure/documentIntelligence";
-import { structureClaim } from "@/lib/azure/openai";
+import { structureClaim, isOpenAiReachable } from "@/lib/azure/openai";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   // claim context (policy, vehicle, garage) is reused; only the AI-derived
   // fields are replaced. On any failure we fall back to the cached demo claim
   // so the workbench always renders.
-  if (isLiveMode()) {
+  if (isLiveMode() && (await isOpenAiReachable())) {
     try {
       const estimateBuffer = readDemoEstimate(claimId);
       if (estimateBuffer) {

@@ -24,13 +24,36 @@ By default `DEMO_MODE=true` (set in `.env.base44-defaults`). All three demo clai
 with cached AI responses and deterministic rule engines — no Azure credentials needed.
 
 ## Enabling Live Azure AI
-Set these secrets (via the Base44 secrets dashboard — values are in Config.docx):
-- `AZURE_DOCUMENT_INTELLIGENCE_KEY`
-- `AZURE_OPENAI_API_KEY`
-- `AZURE_SEARCH_QUERY_KEY`
+Live mode auto-activates whenever `AZURE_OPENAI_API_KEY` is present (delivered via
+the Base44 secrets platform to `/run/base44/app.env`). No flag to flip — provide
+the key and the workbench switches from cached demo responses to live Azure.
 
-Also set the corresponding `_ENDPOINT` env vars. When present and `DEMO_MODE=false`,
-the app calls live Azure services instead of using cached responses.
+Secrets (values in Config.docx):
+- `AZURE_DOCUMENT_INTELLIGENCE_KEY` — Document Intelligence (estimate OCR/extraction)
+- `AZURE_OPENAI_API_KEY` — Azure OpenAI (claim structuring + semantic review)
+- `AZURE_SEARCH_QUERY_KEY` — Azure AI Search (live RAG retrieval; optional)
+
+Non-secret endpoints are pre-filled in `.env.base44-defaults` (from Config.docx):
+`AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_OPENAI_ENDPOINT`, `AZURE_SEARCH_ENDPOINT`,
+plus the chat/embedding deployment names and search index.
+
+### Live pipeline
+- `POST /api/claim/analyze` — when live: reads the claim's source estimate image
+  (`demo-data/<slug>/estimate.png`), runs **Document Intelligence** (`prebuilt-layout`)
+  to extract text+tables, then **Azure OpenAI** (`claimiq-chat`) to produce the
+  `StructuredClaim` (line items, estimate totals, missing info) and `SemanticReview`.
+  The trusted claim context (policy/vehicle/garage) is reused; only the AI-derived
+  fields are replaced. The deterministic rule engines then run unchanged. On any
+  Azure failure it falls back to the cached demo claim so the UI always renders.
+- `POST /api/rag/query` — when live: queries **Azure AI Search** (`claimiq-knowledge`
+  index, full-text). On any error/empty result it falls back to the local keyword
+  index, so RAG always answers.
+
+### Reachability guard
+`isOpenAiReachable()` (in `src/lib/azure/openai.ts`) probes the OpenAI endpoint
+before the slow Document Intelligence step. A dead/unprovisioned OpenAI host
+returns an HTML 404; the probe detects this and skips straight to the demo
+fallback (cached for 60s), so a broken OpenAI endpoint never makes claim loads slow.
 
 ## Architecture
 - `src/lib/rules/` — deterministic rule engines (settlement, review risk, routing, authority)

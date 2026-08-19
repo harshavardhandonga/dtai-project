@@ -20,6 +20,32 @@ function chatUrl(): string {
   return `${azureConfig.openaiEndpoint}/openai/deployments/${azureConfig.chatDeployment}/chat/completions?api-version=${API_VERSION}`;
 }
 
+// Lightweight reachability probe so the analyze route doesn't waste a slow
+// Document Intelligence call when the OpenAI endpoint is down. A dead host
+// returns an HTML 404; a live Azure endpoint always responds with JSON.
+let reachableCache: boolean | null = null;
+let reachableAt = 0;
+
+export async function isOpenAiReachable(): Promise<boolean> {
+  if (!azureConfig.openaiKey || !azureConfig.openaiEndpoint) return false;
+  if (reachableCache !== null && Date.now() - reachableAt < 60000) return reachableCache;
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(
+      `${azureConfig.openaiEndpoint}/openai/models?api-version=2024-06-01`,
+      { headers: { "api-key": azureConfig.openaiKey! }, signal: ctrl.signal }
+    );
+    clearTimeout(timeout);
+    const ct = res.headers.get("content-type") || "";
+    reachableCache = ct.includes("json");
+  } catch {
+    reachableCache = false;
+  }
+  reachableAt = Date.now();
+  return reachableCache;
+}
+
 const num = (v: any): number => {
   if (typeof v === "number") return v;
   const n = parseFloat(String(v ?? "0").replace(/[^0-9.\-]/g, ""));
